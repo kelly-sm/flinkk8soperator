@@ -240,6 +240,35 @@
   version = "v0.1.12"
 
 [[projects]]
+  digest = "1:b21daa6eaa41089ac30f12a8102e4970ab8d417d44a8ebfa61b87c8ee08c8323"
+  name = "github.com/lyft/flinkk8soperator"
+  packages = [
+    "cmd/flinkk8soperator/cmd",
+    "integ/utils",
+    "pkg/apis/app",
+    "pkg/apis/app/v1alpha1",
+    "pkg/apis/app/v1beta1",
+    "pkg/client/clientset/versioned",
+    "pkg/client/clientset/versioned/scheme",
+    "pkg/client/clientset/versioned/typed/app/v1alpha1",
+    "pkg/client/clientset/versioned/typed/app/v1beta1",
+    "pkg/client/clientset/versioned/typed/app/v1beta1/fake",
+    "pkg/controller",
+    "pkg/controller/common",
+    "pkg/controller/config",
+    "pkg/controller/flink",
+    "pkg/controller/flink/client",
+    "pkg/controller/flink/client/mock",
+    "pkg/controller/flink/mock",
+    "pkg/controller/flinkapplication",
+    "pkg/controller/k8",
+    "pkg/controller/k8/mock",
+  ]
+  pruneopts = ""
+  revision = "fb6376a76734a9341aac4760647af49d088846f3"
+  version = "v0.3.0"
+
+[[projects]]
   digest = "1:7cca6306a07b396095f0d0450060041733caa223e2a7066dc1e651575dd0f0f2"
   name = "github.com/lyft/flytestdlib"
   packages = [
@@ -946,6 +975,26 @@
     "github.com/go-resty/resty",
     "github.com/jarcoal/httpmock",
     "github.com/kubernetes-sigs/controller-runtime/pkg/runtime/signals",
+    "github.com/lyft/flinkk8soperator/cmd/flinkk8soperator/cmd",
+    "github.com/lyft/flinkk8soperator/integ/utils",
+    "github.com/lyft/flinkk8soperator/pkg/apis/app",
+    "github.com/lyft/flinkk8soperator/pkg/apis/app/v1alpha1",
+    "github.com/lyft/flinkk8soperator/pkg/apis/app/v1beta1",
+    "github.com/lyft/flinkk8soperator/pkg/client/clientset/versioned",
+    "github.com/lyft/flinkk8soperator/pkg/client/clientset/versioned/scheme",
+    "github.com/lyft/flinkk8soperator/pkg/client/clientset/versioned/typed/app/v1alpha1",
+    "github.com/lyft/flinkk8soperator/pkg/client/clientset/versioned/typed/app/v1beta1",
+    "github.com/lyft/flinkk8soperator/pkg/client/clientset/versioned/typed/app/v1beta1/fake",
+    "github.com/lyft/flinkk8soperator/pkg/controller",
+    "github.com/lyft/flinkk8soperator/pkg/controller/common",
+    "github.com/lyft/flinkk8soperator/pkg/controller/config",
+    "github.com/lyft/flinkk8soperator/pkg/controller/flink",
+    "github.com/lyft/flinkk8soperator/pkg/controller/flink/client",
+    "github.com/lyft/flinkk8soperator/pkg/controller/flink/client/mock",
+    "github.com/lyft/flinkk8soperator/pkg/controller/flink/mock",
+    "github.com/lyft/flinkk8soperator/pkg/controller/flinkapplication",
+    "github.com/lyft/flinkk8soperator/pkg/controller/k8",
+    "github.com/lyft/flinkk8soperator/pkg/controller/k8/mock",
     "github.com/lyft/flytestdlib/config",
     "github.com/lyft/flytestdlib/config/viper",
     "github.com/lyft/flytestdlib/contextutils",
