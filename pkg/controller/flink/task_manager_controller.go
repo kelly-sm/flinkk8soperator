@@ -209,7 +209,6 @@ func taskmanagerTemplate(app *v1beta1.FlinkApplication) *v1.Deployment {
 					Volumes:          app.Spec.Volumes,
 					ImagePullSecrets: app.Spec.ImagePullSecrets,
 					NodeSelector:     app.Spec.TaskManagerConfig.NodeSelector,
-					SecurityContext:  &app.Spec.SecurityContext,
 				},
 			},
 		},
@@ -219,6 +218,11 @@ func taskmanagerTemplate(app *v1beta1.FlinkApplication) *v1.Deployment {
 	if serviceAccountName != "" {
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 	}
+
+	if app.Spec.SecurityContext != nil {
+		deployment.Spec.Template.Spec.SecurityContext = app.Spec.SecurityContext
+	}
+
 	return deployment
 }
 
