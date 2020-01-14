@@ -26,7 +26,6 @@ var testJarName = "test.jar"
 var testEntryClass = "com.test.MainClass"
 var testProgramArgs = "--test"
 
-
 func getJMControllerForTest() JobManagerController {
 	testScope := mockScope.NewTestScope()
 	labeled.SetMetricKeys(common.GetValidLabelNames()...)
@@ -55,7 +54,6 @@ func TestJobManagerCreateSuccess(t *testing.T) {
 	app.Spec.JarName = testJarName
 	app.Spec.EntryClass = testEntryClass
 	app.Spec.ProgramArgs = testProgramArgs
-
 	annotations := map[string]string{
 		"key":                  "annotation",
 		"flink-job-properties": "jarName: " + testJarName + "\nparallelism: 8\nentryClass:" + testEntryClass + "\nprogramArgs:\"" + testProgramArgs + "\"",
