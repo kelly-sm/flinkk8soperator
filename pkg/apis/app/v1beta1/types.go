@@ -44,6 +44,7 @@ type FlinkApplicationSpec struct {
 	// Deprecated: use SavepointPath instead
 	SavepointInfo                  SavepointInfo       `json:"savepointInfo,omitempty"`
 	SavepointPath                  string              `json:"savepointPath,omitempty"`
+	SavepointDisabled              bool                `json:"savepointDisabled"`
 	DeploymentMode                 DeploymentMode      `json:"deploymentMode,omitempty"`
 	RPCPort                        *int32              `json:"rpcPort,omitempty"`
 	BlobPort                       *int32              `json:"blobPort,omitempty"`
@@ -54,9 +55,11 @@ type FlinkApplicationSpec struct {
 	VolumeMounts                   []apiv1.VolumeMount `json:"volumeMounts,omitempty"`
 	RestartNonce                   string              `json:"restartNonce"`
 	DeleteMode                     DeleteMode          `json:"deleteMode,omitempty"`
+	ScaleMode                      ScaleMode           `json:"scaleMode,omitempty"`
 	AllowNonRestoredState          bool                `json:"allowNonRestoredState,omitempty"`
 	ForceRollback                  bool                `json:"forceRollback"`
 	MaxCheckpointRestoreAgeSeconds *int32              `json:"maxCheckpointRestoreAgeSeconds,omitempty"`
+	TearDownVersionHash            string              `json:"tearDownVersionHash,omitempty"`
 }
 
 type FlinkConfig map[string]interface{}
@@ -104,19 +107,25 @@ func (in *FlinkConfig) DeepCopy() *FlinkConfig {
 }
 
 type JobManagerConfig struct {
-	Resources             *apiv1.ResourceRequirements `json:"resources,omitempty"`
-	EnvConfig             EnvironmentConfig           `json:"envConfig"`
-	Replicas              *int32                      `json:"replicas,omitempty"`
-	OffHeapMemoryFraction *float64                    `json:"offHeapMemoryFraction,omitempty"`
-	NodeSelector          map[string]string           `json:"nodeSelector,omitempty"`
+	Resources *apiv1.ResourceRequirements `json:"resources,omitempty"`
+	EnvConfig EnvironmentConfig           `json:"envConfig"`
+	Replicas  *int32                      `json:"replicas,omitempty"`
+	// Deprecated: use SystemMemoryFraction instead
+	OffHeapMemoryFraction *float64           `json:"offHeapMemoryFraction,omitempty"`
+	SystemMemoryFraction  *float64           `json:"systemMemoryFraction,omitempty"`
+	NodeSelector          map[string]string  `json:"nodeSelector,omitempty"`
+	Tolerations           []apiv1.Toleration `json:"tolerations,omitempty"`
 }
 
 type TaskManagerConfig struct {
-	Resources             *apiv1.ResourceRequirements `json:"resources,omitempty"`
-	EnvConfig             EnvironmentConfig           `json:"envConfig"`
-	TaskSlots             *int32                      `json:"taskSlots,omitempty"`
-	OffHeapMemoryFraction *float64                    `json:"offHeapMemoryFraction,omitempty"`
-	NodeSelector          map[string]string           `json:"nodeSelector,omitempty"`
+	Resources *apiv1.ResourceRequirements `json:"resources,omitempty"`
+	EnvConfig EnvironmentConfig           `json:"envConfig"`
+	TaskSlots *int32                      `json:"taskSlots,omitempty"`
+	// Deprecated: use SystemMemoryFraction instead
+	OffHeapMemoryFraction *float64           `json:"offHeapMemoryFraction,omitempty"`
+	SystemMemoryFraction  *float64           `json:"systemMemoryFraction,omitempty"`
+	NodeSelector          map[string]string  `json:"nodeSelector,omitempty"`
+	Tolerations           []apiv1.Toleration `json:"tolerations,omitempty"`
 }
 
 type EnvironmentConfig struct {
@@ -153,29 +162,54 @@ type FlinkJobStatus struct {
 	JobRestartCount          int32        `json:"jobRestartCount,omitempty"`
 	CompletedCheckpointCount int32        `json:"completedCheckpointCount,omitempty"`
 	FailedCheckpointCount    int32        `json:"failedCheckpointCount,omitempty"`
-	LastCheckpointTime       *metav1.Time `json:"lastCheckpointTime,omitempty"`
 	RestorePath              string       `json:"restorePath,omitempty"`
 	RestoreTime              *metav1.Time `json:"restoreTime,omitempty"`
 	LastFailingTime          *metav1.Time `json:"lastFailingTime,omitempty"`
+
+	LastCheckpointPath string       `json:"lastCheckpoint,omitempty"`
+	LastCheckpointTime *metav1.Time `json:"lastCheckpointTime,omitempty"`
 
 	RunningTasks int32 `json:"runningTasks,omitempty"`
 	TotalTasks   int32 `json:"totalTasks,omitempty"`
 }
 
 type FlinkApplicationStatus struct {
-	Phase              FlinkApplicationPhase  `json:"phase"`
-	StartedAt          *metav1.Time           `json:"startedAt,omitempty"`
-	LastUpdatedAt      *metav1.Time           `json:"lastUpdatedAt,omitempty"`
-	Reason             string                 `json:"reason,omitempty"`
-	ClusterStatus      FlinkClusterStatus     `json:"clusterStatus,omitempty"`
-	JobStatus          FlinkJobStatus         `json:"jobStatus"`
-	FailedDeployHash   string                 `json:"failedDeployHash,omitempty"`
-	RollbackHash       string                 `json:"rollbackHash,omitempty"`
-	DeployHash         string                 `json:"deployHash"`
-	SavepointTriggerID string                 `json:"savepointTriggerId,omitempty"`
-	SavepointPath      string                 `json:"savepointPath,omitempty"`
-	RetryCount         int32                  `json:"retryCount,omitempty"`
-	LastSeenError      *FlinkApplicationError `json:"lastSeenError,omitempty"`
+	Phase                  FlinkApplicationPhase           `json:"phase"`
+	StartedAt              *metav1.Time                    `json:"startedAt,omitempty"`
+	LastUpdatedAt          *metav1.Time                    `json:"lastUpdatedAt,omitempty"`
+	Reason                 string                          `json:"reason,omitempty"`
+	DeployVersion          FlinkApplicationVersion         `json:"deployVersion,omitempty"`
+	UpdatingVersion        FlinkApplicationVersion         `json:"updatingVersion,omitempty"`
+	ClusterStatus          FlinkClusterStatus              `json:"clusterStatus,omitempty"`
+	JobStatus              FlinkJobStatus                  `json:"jobStatus,omitempty"`
+	VersionStatuses        []FlinkApplicationVersionStatus `json:"versionStatuses,omitempty"`
+	FailedDeployHash       string                          `json:"failedDeployHash,omitempty"`
+	RollbackHash           string                          `json:"rollbackHash,omitempty"`
+	DeployHash             string                          `json:"deployHash"`
+	UpdatingHash           string                          `json:"updatingHash,omitempty"`
+	TeardownHash           string                          `json:"teardownHash,omitempty"`
+	InPlaceUpdatedFromHash string                          `json:"inPlaceUpdatedFromHash,omitempty"`
+	SavepointTriggerID     string                          `json:"savepointTriggerId,omitempty"`
+	SavepointPath          string                          `json:"savepointPath,omitempty"`
+	RetryCount             int32                           `json:"retryCount,omitempty"`
+	LastSeenError          *FlinkApplicationError          `json:"lastSeenError,omitempty"`
+	// We store deployment mode in the status to prevent incompatible migrations from
+	// Dual --> BlueGreen and BlueGreen --> Dual
+	DeploymentMode DeploymentMode `json:"deploymentMode,omitempty"`
+}
+
+type FlinkApplicationVersion string
+
+const (
+	BlueFlinkApplication  FlinkApplicationVersion = "blue"
+	GreenFlinkApplication FlinkApplicationVersion = "green"
+)
+
+type FlinkApplicationVersionStatus struct {
+	Version       FlinkApplicationVersion `json:"appVersion,omitempty"`
+	VersionHash   string                  `json:"versionHash,omitempty"`
+	ClusterStatus FlinkClusterStatus      `json:"clusterStatus,omitempty"`
+	JobStatus     FlinkJobStatus          `json:"jobStatus,omitempty"`
 }
 
 func (in *FlinkApplicationStatus) GetPhase() FlinkApplicationPhase {
@@ -212,36 +246,60 @@ func (p FlinkApplicationPhase) VerboseString() string {
 const (
 	FlinkApplicationNew             FlinkApplicationPhase = ""
 	FlinkApplicationUpdating        FlinkApplicationPhase = "Updating"
+	FlinkApplicationRescaling       FlinkApplicationPhase = "Rescaling"
 	FlinkApplicationClusterStarting FlinkApplicationPhase = "ClusterStarting"
 	FlinkApplicationSubmittingJob   FlinkApplicationPhase = "SubmittingJob"
 	FlinkApplicationRunning         FlinkApplicationPhase = "Running"
 	FlinkApplicationSavepointing    FlinkApplicationPhase = "Savepointing"
+	FlinkApplicationCancelling      FlinkApplicationPhase = "Cancelling"
 	FlinkApplicationDeleting        FlinkApplicationPhase = "Deleting"
+	FlinkApplicationRecovering      FlinkApplicationPhase = "Recovering"
 	FlinkApplicationRollingBackJob  FlinkApplicationPhase = "RollingBackJob"
 	FlinkApplicationDeployFailed    FlinkApplicationPhase = "DeployFailed"
+	FlinkApplicationDualRunning     FlinkApplicationPhase = "DualRunning"
 )
 
 var FlinkApplicationPhases = []FlinkApplicationPhase{
 	FlinkApplicationNew,
 	FlinkApplicationUpdating,
+	FlinkApplicationRescaling,
 	FlinkApplicationClusterStarting,
 	FlinkApplicationSubmittingJob,
 	FlinkApplicationRunning,
 	FlinkApplicationSavepointing,
+	FlinkApplicationCancelling,
 	FlinkApplicationDeleting,
+	FlinkApplicationRecovering,
 	FlinkApplicationDeployFailed,
 	FlinkApplicationRollingBackJob,
+	FlinkApplicationDualRunning,
 }
 
 func IsRunningPhase(phase FlinkApplicationPhase) bool {
 	return phase == FlinkApplicationRunning || phase == FlinkApplicationDeployFailed
 }
 
+func IsBlueGreenDeploymentMode(mode DeploymentMode) bool {
+	// Backaward compatibility between v1beta1 and v1beta1
+	if mode == DeploymentModeDual {
+		return false
+	}
+	return mode == DeploymentModeBlueGreen
+}
+
+func GetMaxRunningJobs(mode DeploymentMode) int32 {
+	if IsBlueGreenDeploymentMode(mode) {
+		return int32(2)
+	}
+	return int32(1)
+}
+
 type DeploymentMode string
 
 const (
-	DeploymentModeSingle DeploymentMode = "Single"
-	DeploymentModeDual   DeploymentMode = "Dual"
+	DeploymentModeSingle    DeploymentMode = "Single"
+	DeploymentModeDual      DeploymentMode = "Dual"
+	DeploymentModeBlueGreen DeploymentMode = "BlueGreen"
 )
 
 type DeleteMode string
@@ -250,6 +308,13 @@ const (
 	DeleteModeSavepoint   DeleteMode = "Savepoint"
 	DeleteModeForceCancel DeleteMode = "ForceCancel"
 	DeleteModeNone        DeleteMode = "None"
+)
+
+type ScaleMode string
+
+const (
+	ScaleModeNewCluster ScaleMode = "NewCluster"
+	ScaleModeInPlace    ScaleMode = "InPlace"
 )
 
 type HealthStatus string
@@ -304,4 +369,5 @@ const (
 	GetTaskManagers        FlinkMethod = "GetTaskManagers"
 	GetCheckpointCounts    FlinkMethod = "GetCheckpointCounts"
 	GetJobOverview         FlinkMethod = "GetJobOverview"
+	SavepointJob           FlinkMethod = "SavepointJob"
 )

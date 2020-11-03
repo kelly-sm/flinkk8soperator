@@ -37,7 +37,7 @@ func TestComputeTaskManagerReplicas(t *testing.T) {
 	app.Spec.Parallelism = 9
 	app.Spec.FlinkVersion = "1.7"
 
-	assert.Equal(t, int32(3), computeTaskManagerReplicas(&app))
+	assert.Equal(t, int32(3), ComputeTaskManagerReplicas(&app))
 }
 
 func TestGetTaskManagerName(t *testing.T) {
@@ -50,20 +50,38 @@ func TestGetTaskManagerPodName(t *testing.T) {
 	assert.Equal(t, "app-name-"+testAppHash+"-tm-pod", getTaskManagerPodName(&app, testAppHash))
 }
 
+func TestGetTaskManagerPodNameWithVersion(t *testing.T) {
+	app := getFlinkTestApp()
+	app.Spec.DeploymentMode = v1beta1.DeploymentModeBlueGreen
+	app.Status.DeploymentMode = v1beta1.DeploymentModeBlueGreen
+	app.Status.UpdatingVersion = testVersion
+	assert.Equal(t, "app-name-"+testAppHash+"-"+testVersion+"-tm", getTaskManagerName(&app, testAppHash))
+}
+
 func TestTaskManagerCreateSuccess(t *testing.T) {
 	testController := getTMControllerForTest()
 	app := getFlinkTestApp()
 	app.Spec.JarName = testJarName
 	app.Spec.EntryClass = testEntryClass
 	app.Spec.ProgramArgs = testProgramArgs
+<<<<<<< HEAD
+=======
+	app.Spec.TaskManagerConfig.Tolerations = []coreV1.Toleration{{
+		Key:      "key",
+		Operator: "Equal",
+		Value:    "Value",
+		Effect:   "NoSchedule",
+	}}
+
+>>>>>>> upstream/master
 	annotations := map[string]string{
 		"key":                  "annotation",
 		"flink-job-properties": "jarName: test.jar\nparallelism: 8\nentryClass:com.test.MainClass\nprogramArgs:\"--test\"",
 	}
 
-	hash := "c3c0af0b"
+	hash := "a5ebc547"
 
-	app.Annotations = annotations
+	app.Annotations = common.DuplicateMap(annotations)
 	expectedLabels := map[string]string{
 		"flink-app":             "app-name",
 		"flink-app-hash":        hash,
@@ -76,14 +94,16 @@ func TestTaskManagerCreateSuccess(t *testing.T) {
 		assert.Equal(t, app.Namespace, deployment.Namespace)
 		assert.Equal(t, getTaskManagerPodName(&app, hash), deployment.Spec.Template.Name)
 		assert.Equal(t, annotations, deployment.Annotations)
+		annotations["flink-app-hash"] = hash
 		assert.Equal(t, annotations, deployment.Spec.Template.Annotations)
 		assert.Equal(t, app.Namespace, deployment.Spec.Template.Namespace)
 		assert.Equal(t, expectedLabels, deployment.Labels)
+		assert.Equal(t, app.Spec.TaskManagerConfig.Tolerations, deployment.Spec.Template.Spec.Tolerations)
 
-		assert.Equal(t, "blob.server.port: 6125\njobmanager.heap.size: 1572864k\n"+
+		assert.Equal(t, "blob.server.port: 6125\njobmanager.heap.size: 2516582k\n"+
 			"jobmanager.rpc.port: 6123\n"+
 			"jobmanager.web.port: 8081\nmetrics.internal.query-service.port: 50101\n"+
-			"query.server.port: 6124\ntaskmanager.heap.size: 524288k\n"+
+			"query.server.port: 6124\ntaskmanager.heap.size: 838860k\n"+
 			"taskmanager.numberOfTaskSlots: 16\n\n"+
 			"jobmanager.rpc.address: app-name-"+hash+"\n"+
 			"taskmanager.host: $HOST_IP\n",
@@ -108,11 +128,11 @@ func TestTaskManagerHACreateSuccess(t *testing.T) {
 		"flink-job-properties": "jarName: test.jar\nparallelism: 8\nentryClass:com.test.MainClass\nprogramArgs:\"--test\"",
 	}
 
-	hash := "52623ded"
+	hash := "a860c62b"
 	app.Spec.FlinkConfig = map[string]interface{}{
 		"high-availability": "zookeeper",
 	}
-	app.Annotations = annotations
+	app.Annotations = common.DuplicateMap(annotations)
 	expectedLabels := map[string]string{
 		"flink-app":             "app-name",
 		"flink-app-hash":        hash,
@@ -125,14 +145,15 @@ func TestTaskManagerHACreateSuccess(t *testing.T) {
 		assert.Equal(t, app.Namespace, deployment.Namespace)
 		assert.Equal(t, getTaskManagerPodName(&app, hash), deployment.Spec.Template.Name)
 		assert.Equal(t, annotations, deployment.Annotations)
+		annotations["flink-app-hash"] = hash
 		assert.Equal(t, annotations, deployment.Spec.Template.Annotations)
 		assert.Equal(t, app.Namespace, deployment.Spec.Template.Namespace)
 		assert.Equal(t, expectedLabels, deployment.Labels)
 
-		assert.Equal(t, "blob.server.port: 6125\nhigh-availability: zookeeper\njobmanager.heap.size: 1572864k\n"+
+		assert.Equal(t, "blob.server.port: 6125\nhigh-availability: zookeeper\njobmanager.heap.size: 2516582k\n"+
 			"jobmanager.rpc.port: 6123\n"+
 			"jobmanager.web.port: 8081\nmetrics.internal.query-service.port: 50101\n"+
-			"query.server.port: 6124\ntaskmanager.heap.size: 524288k\n"+
+			"query.server.port: 6124\ntaskmanager.heap.size: 838860k\n"+
 			"taskmanager.numberOfTaskSlots: 16\n\n"+
 			"high-availability.cluster-id: app-name-"+hash+"\n"+
 			"taskmanager.host: $HOST_IP\n",
@@ -170,7 +191,11 @@ func TestTaskManagerSecurityContextAssignment(t *testing.T) {
 		RunAsNonRoot: &runAsNonRoot,
 	}
 
+<<<<<<< HEAD
 	hash := "c06b960b"
+=======
+	hash := "26ca0a3a"
+>>>>>>> upstream/master
 
 	mockK8Cluster := testController.k8Cluster.(*k8mock.K8Cluster)
 	mockK8Cluster.CreateK8ObjectFunc = func(ctx context.Context, object runtime.Object) error {
@@ -214,4 +239,59 @@ func TestTaskManagerCreateAlreadyExists(t *testing.T) {
 	newlyCreated, err := testController.CreateIfNotExist(context.Background(), &app)
 	assert.Nil(t, err)
 	assert.False(t, newlyCreated)
+}
+
+func TestTaskManagerCreateSuccessWithVersion(t *testing.T) {
+	testController := getTMControllerForTest()
+	app := getFlinkTestApp()
+	app.Spec.JarName = testJarName
+	app.Spec.EntryClass = testEntryClass
+	app.Spec.ProgramArgs = testProgramArgs
+	app.Spec.DeploymentMode = v1beta1.DeploymentModeBlueGreen
+	app.Status.DeploymentMode = v1beta1.DeploymentModeBlueGreen
+	app.Status.UpdatingVersion = testVersion
+	annotations := map[string]string{
+		"key":                       "annotation",
+		"flink-application-version": testVersion,
+		"flink-job-properties":      "jarName: test.jar\nparallelism: 8\nentryClass:com.test.MainClass\nprogramArgs:\"--test\"",
+	}
+
+	hash := "6f67fe75"
+
+	app.Annotations = common.DuplicateMap(annotations)
+	expectedLabels := map[string]string{
+		"flink-app":                 "app-name",
+		"flink-app-hash":            hash,
+		"flink-deployment-type":     "taskmanager",
+		"flink-application-version": testVersion,
+	}
+	mockK8Cluster := testController.k8Cluster.(*k8mock.K8Cluster)
+	mockK8Cluster.CreateK8ObjectFunc = func(ctx context.Context, object runtime.Object) error {
+		deployment := object.(*v1.Deployment)
+		assert.Equal(t, getTaskManagerName(&app, hash), deployment.Name)
+		assert.Equal(t, app.Namespace, deployment.Namespace)
+		assert.Equal(t, getTaskManagerPodName(&app, hash), deployment.Spec.Template.Name)
+		assert.Equal(t, annotations, deployment.Annotations)
+		annotations["flink-app-hash"] = hash
+		assert.Equal(t, annotations, deployment.Spec.Template.Annotations)
+		assert.Equal(t, app.Namespace, deployment.Spec.Template.Namespace)
+		assert.Equal(t, expectedLabels, deployment.Labels)
+
+		assert.Equal(t, "blob.server.port: 6125\njobmanager.heap.size: 2516582k\n"+
+			"jobmanager.rpc.port: 6123\n"+
+			"jobmanager.web.port: 8081\nmetrics.internal.query-service.port: 50101\n"+
+			"query.server.port: 6124\ntaskmanager.heap.size: 838860k\n"+
+			"taskmanager.numberOfTaskSlots: 16\n\n"+
+			"jobmanager.rpc.address: app-name-"+hash+"\n"+
+			"taskmanager.host: $HOST_IP\n",
+			common.GetEnvVar(deployment.Spec.Template.Spec.Containers[0].Env,
+				"FLINK_PROPERTIES").Value)
+		assert.Equal(t, testVersion, common.GetEnvVar(deployment.Spec.Template.Spec.Containers[0].Env,
+			"FLINK_APPLICATION_VERSION").Value)
+
+		return nil
+	}
+	newlyCreated, err := testController.CreateIfNotExist(context.Background(), &app)
+	assert.Nil(t, err)
+	assert.True(t, newlyCreated)
 }

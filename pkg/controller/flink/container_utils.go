@@ -3,6 +3,7 @@ package flink
 import (
 	"fmt"
 	"hash/fnv"
+	"math/rand"
 
 	"github.com/benlaurie/objecthash/go/objecthash"
 
@@ -31,8 +32,11 @@ const (
 	FlinkDeploymentTypeJobmanager    = "jobmanager"
 	FlinkDeploymentTypeTaskmanager   = "taskmanager"
 	FlinkAppHash                     = "flink-app-hash"
+	PodDeploymentSelector            = "pod-deployment-selector"
 	FlinkJobProperties               = "flink-job-properties"
 	RestartNonce                     = "restart-nonce"
+	FlinkApplicationVersionEnv       = "FLINK_APPLICATION_VERSION"
+	FlinkApplicationVersion          = "flink-application-version"
 )
 
 func getFlinkContainerName(containerName string) string {
@@ -44,8 +48,12 @@ func getFlinkContainerName(containerName string) string {
 	return containerName
 }
 
-func getCommonAppLabels(app *v1beta1.FlinkApplication) map[string]string {
-	return k8.GetAppLabel(app.Name)
+func GetCommonAppLabels(app *v1beta1.FlinkApplication) map[string]string {
+	labels := common.DuplicateMap(k8.GetAppLabel(app.Name))
+	if v1beta1.IsBlueGreenDeploymentMode(app.Status.DeploymentMode) {
+		labels[FlinkApplicationVersion] = string(app.Status.UpdatingVersion)
+	}
+	return labels
 }
 
 func getCommonAnnotations(app *v1beta1.FlinkApplication) map[string]string {
@@ -55,6 +63,9 @@ func getCommonAnnotations(app *v1beta1.FlinkApplication) map[string]string {
 		app.Spec.JarName, app.Spec.Parallelism, app.Spec.EntryClass, app.Spec.ProgramArgs)
 	if app.Spec.RestartNonce != "" {
 		annotations[RestartNonce] = app.Spec.RestartNonce
+	}
+	if v1beta1.IsBlueGreenDeploymentMode(app.Status.DeploymentMode) {
+		annotations[FlinkApplicationVersion] = string(app.Status.UpdatingVersion)
 	}
 	return annotations
 }
@@ -117,6 +128,7 @@ func GetFlinkContainerEnv(app *v1beta1.FlinkApplication) []v1.EnvVar {
 	if err == nil {
 		env = append(env, flinkEnv...)
 	}
+	env = append(env, GetDeploySpecificEnv(app)...)
 	return env
 }
 
@@ -217,4 +229,34 @@ func InjectOperatorCustomizedConfig(deployment *appsv1.Deployment, app *v1beta1.
 		newContainers = append(newContainers, container)
 	}
 	deployment.Spec.Template.Spec.Containers = newContainers
+}
+
+// Injects labels and environment variables required for blue green deploys
+func GetDeploySpecificEnv(app *v1beta1.FlinkApplication) []v1.EnvVar {
+	if !v1beta1.IsBlueGreenDeploymentMode(app.Status.DeploymentMode) {
+		return []v1.EnvVar{}
+	}
+
+	return []v1.EnvVar{
+		{
+			Name:  FlinkApplicationVersionEnv,
+			Value: string(app.Status.UpdatingVersion),
+		},
+	}
+
+}
+
+// Generates random 8 character string that connects pods to deployments, and which uniquely identifies *this*
+// deployment that we're creating now. We used to rely on the hash for this, but that is not stable in the case of
+// in-place scale up.
+func RandomPodDeploymentSelector() string {
+	alphabet := "abcdefghijklmnopkqrstuvwxyz0123456789"
+
+	s := make([]byte, 8)
+
+	for i := range s {
+		s[i] = alphabet[rand.Int31n(int32(len(alphabet)))]
+	}
+
+	return string(s)
 }

@@ -1,8 +1,8 @@
 # Quick Start Guide
 
-If you are looking to develop and test operator in your local machine, refer to [Local development guide](local_dev.md)
+If you are looking to develop and test the operator in your local machine, refer to [Local development guide](local_dev.md).
 
-Follow the steps below if you have Kubernetes cluster up and running.
+Follow the steps below if you have a Kubernetes cluster up and running.
 
 ## Setup kubectl
 Follow the instructions [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/) to install and setup kubectl
@@ -12,16 +12,16 @@ Follow the instructions [here](https://kubernetes.io/docs/tasks/tools/install-ku
 * Let's first create the custom resource definition, namespace, and roles for running the flink operator.
 
 ```bash
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/crd.yaml
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/namespace.yaml
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/role.yaml
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/role-binding.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/crd.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/namespace.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/role.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/role-binding.yaml
 ```
 
 * Before creating the flink operator deployment, edit/update the operator config:
 
 ``` bash
-$ curl https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/config.yaml
+$ curl https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/config.yaml
 ```
 
 Replace the `{ingress_suffix}` to indicate your cluster's ingress url.
@@ -44,7 +44,7 @@ $ kubectl create -f config.yaml
 
 Finally, create the operator Deployment:
 ```
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/deploy/flinkk8soperator.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/deploy/flinkk8soperator.yaml
 ```
 
 * Ensure that the flink operator pod is *RUNNING*, and check operator logs if needed.
@@ -56,7 +56,7 @@ $ kubectl logs {pod-name} -n flink-operator
 
 ## Running the example
 
-You can find sample application to run with the flink operator [here](/examples/wordcount/).
+You can find a sample application to run with the flink operator [here](/examples/wordcount/).
 Make sure to edit the value of `sha` with the most recently pushed tag found [here](https://hub.docker.com/r/lyft/wordcount-operator-example/tags)
 ```yaml
   image: docker.io/lyft/wordcount-operator-example:{sha}
@@ -65,7 +65,7 @@ Make sure to edit the value of `sha` with the most recently pushed tag found [he
 To run a flink application, run the following command:
 
 ```bash
-$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.3.0/examples/wordcount/flink-operator-custom-resource.yaml
+$ kubectl create -f https://raw.githubusercontent.com/lyft/flinkk8soperator/v0.5.0/examples/wordcount/flink-operator-custom-resource.yaml
 ```
 
 The above command will create the flink application custom resource in kubernetes. The operator will observe the custom resource, and will create a flink cluster in kubernetes.
@@ -160,7 +160,7 @@ To check events for the `FlinkApplication` object, run the following command:
 $ kubectl describe flinkapplication.flink.k8s.io -n flink-operator wordcount-operator-example
 ```
 
-This will show the events similarly to the following:
+This will show events similarly to the following:
 
 ```
 Events:
